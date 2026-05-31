@@ -65,7 +65,7 @@ Hi <%= it.name %>! Your message will be encrypted for <%= it.recipient_names %>
 </style>
 
 <script type="module">
-    <%= recipient_keys_const %>
+    <%~ it.recipient_keys_const %>
     <%~ include("./write_message.js.eta") %>
 </script>
 </body>

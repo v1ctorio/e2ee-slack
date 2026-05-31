@@ -91,12 +91,12 @@ async function encryptMessage(msg, signing_key,target_keys) {
 }
 
 
-async function decryptKey(key, passphrase) {
-    if (!key | !passphrase) return null
-    const key = await openpgp.readPrivateKey({armoredKey:key})
+async function decryptKey(ekey, passphrase) {
+    if (!ekey | !passphrase) return null
+    const parsed_ekey = await openpgp.readPrivateKey({armoredKey:ekey})
     let decrpyted 
     try {
-        decrpyted = await openpgp.decryptKey({privateKey:key, passphrase})
+        decrpyted = await openpgp.decryptKey({privateKey:parsed_ekey, passphrase})
     } catch {
         console.error("error decrypting key. probably wrong passphrase",e)
         return null;
@@ -106,8 +106,8 @@ async function decryptKey(key, passphrase) {
     return decrpyted
 }
 
-function raiseMsg(msg, isError = false) {
+function raiseMsg(mesg, isError = false) {
     let msg = isError ? "msg: " : "error: " + e
     //TODO put msgs somewhere better
-    passphraseHelper.innerText = msg
+    passphraseHelper.innerText = mesg
 }

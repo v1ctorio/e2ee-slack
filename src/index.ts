@@ -384,6 +384,7 @@ async function getUserData(slack_id: string): Promise<UserData | null> {
 }
 
 function videoEmbedBlock(page_title: string, slug: string) {
+  console.log("generating video embed:", SELF_BASE_URL + "/slug/" + slug)
   return {
     type: "video",
     alt_text: "embedded e2ee client",
