@@ -8,7 +8,7 @@ export interface writeMessagePage {
   user: string;
   user_name: string;
   kind: "write_message";
-  recipients?: string[]; // recipient slack ids (do i really need this for anything?)
+  recipients: string[]; // recipient slack ids (do i really need this for anything?). Yes, I need this to send the "envelope" dms
   recipients_keys: string[];
   author_private_key: string;
 }
@@ -22,8 +22,13 @@ export interface UserData {
   fingerprint: string;
 }
 
-export interface RegistrationFormData {
+export interface RegistrationPayload {
   private_key: string;
   public_key: string;
+  slug: string;
+}
+
+export interface PostMessagePayload {
+  guarded_message: string;
   slug: string;
 }

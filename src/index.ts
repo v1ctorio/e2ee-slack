@@ -7,7 +7,7 @@ import path from "path";
 import * as express from "express";
 config();
 import * as pgp from "openpgp";
-import type { PageKind, RegistrationFormData, UserData } from "./types.js";
+import type { PageKind, PostMessagePayload, RegistrationPayload, UserData, writeMessagePage } from "./types.js";
 import { Valkeyrie } from "valkeyrie";
 const {
   SLACK_BOT_TOKEN,
@@ -245,7 +245,7 @@ slack.view("encrypt_msg", async ({ ack, body, client }) => {
 
   const slug = await generateSlug({
     kind: "write_message",
-    //recipients,
+    recipients,
     recipients_keys: recipientSPubKeys,
     user: body.user.id,
     user_name: body.user.name,
@@ -299,7 +299,7 @@ receiver.router.get("/slug/:slug", async (req, res) => {
 
     res
       .status(200)
-      .send(eta.render("./write_message", { name: page.user_name, author_private_key: page.author_private_key, recipient_keys: base64Keys}));
+      .send(eta.render("./write_message", { name: page.user_name, author_private_key: page.author_private_key, recipient_keys: base64Keys, slug}));
   }
 });
 
@@ -312,7 +312,7 @@ receiver.router.get("/que", (r, res) => {
 });
 
 receiver.router.post("/postKey", express.json(), async (req, res) => {
-  const body: RegistrationFormData = req.body;
+  const body: RegistrationPayload = req.body;
   console.log("received a post request", body);
   if (!body["slug"] || !body["public_key"] || !body["private_key"]) {
     res.status(422).send("unprocessable body");
@@ -324,6 +324,22 @@ receiver.router.post("/postKey", express.json(), async (req, res) => {
   res.status(200).send("ok");
 });
 
+receiver.router.post("/message", express.json(), async (req, res) => {
+  const {slug, guarded_message}: PostMessagePayload = req.body;
+  console.log("Received an encrypted message")
+  const data = (await db.get([SLUGS, slug])); 
+  if (!data) return res.status(404).send("slug not found");
+  
+  const page = data.value as writeMessagePage;
+  const {recipients,user,user_name, kind } = page;
+  
+  if (!kind || kind !== "write_message" ) return res.status(400).send("Invalid slug");
+  if (!guarded_message || guarded_message.length < 10 ) return res.status(422).send("unprocessable body");
+
+
+
+
+})
 await slack.start(PORT!);
 await slack.logger.info("Slack app started in", PORT!);
 
@@ -333,7 +349,7 @@ async function generateSlug(k: PageKind) {
   return slug;
 }
 
-async function save_user(payload: RegistrationFormData): Promise<boolean> {
+async function save_user(payload: RegistrationPayload): Promise<boolean> {
   const { public_key, private_key, slug } = payload;
   const slug_data = (await (await db.get([SLUGS, slug])).value) as PageKind;
   if (!slug_data) return false;

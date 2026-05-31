@@ -5,6 +5,7 @@
 
 // This is such an utter mess of templating shenanigans, shouldn't have used eta
 const ENCRYPTED_PRIV_KEY = `<%= it.author_private_key %>`
+const SLUG = "<%= it.slug %>"
 const recipient_keys = JSON.parse(atob("<%= it.recipient_keys %>"));
 const submitButton = document.getElementById("submitbutton")
 const form = document.getElementById("formulary")
@@ -18,12 +19,10 @@ import * as openpgp from "/openpgp.min.mjs"
 var DecryptedKey, EncryptedMessage;
 
 `
-1. button first decrypts the key. error if wrong
-2. then the button encrypts the provided Message. error if empty
-3. click button to encrypt the message.
-4. click the button to send it to the server
+0. button first decrypts the key. error if wrong
+1. then the button encrypts the provided Message. error if empty
+2. click the button to send it to the server
 `
-
 let state = 0;
 
 renameSubmitButton("Decrypt key")
@@ -36,7 +35,6 @@ submitButton.addEventListener("click", async (e)=>{
         case 0: await first_step(); break
         case 1: await second_step(); break
         case 2: await third_step(); break
-        case 3: await fourth_step(); break
         default: raiseMsg("what", true); break;
     }
 })
@@ -56,7 +54,7 @@ async function first_step() {
     messageInput.disabled = false
     state++
 }
-async function second_step(params) {
+async function second_step() {
     const message = messageInput.value.trim()
     if (message === "") return raiseMsg("You must write a message first!", true)
     const target_keys = []
@@ -77,7 +75,21 @@ async function second_step(params) {
 }
 
 
+async function third_step() {
+    const payload = {
+        slug: SLUG,
+        guarded_message: EncryptedMessage
+    }
+    const res = await fetch(`/message`, {
+        method: "POST",
+        body: JSON.stringify(payload)
+    })
 
+    if (!res.ok) return raiseMsg("Error sending the message, weird", true)
+    else 
+        raiseMsg("Successfully sent the message!")
+        state++
+}
 
 
 function renameSubmitButton(name) {
