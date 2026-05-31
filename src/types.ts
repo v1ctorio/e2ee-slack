@@ -22,6 +22,13 @@ export interface UserData {
   fingerprint: string;
 }
 
+export interface MessageData {
+  author: string; //slack id of the message author
+  recipients: string[];
+  armored_message: string; // the encrypted message
+  creation_timestamp: number;
+}
+
 export interface RegistrationPayload {
   private_key: string;
   public_key: string;

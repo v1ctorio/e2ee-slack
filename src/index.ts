@@ -7,7 +7,7 @@ import path from "path";
 import * as express from "express";
 config();
 import * as pgp from "openpgp";
-import type { PageKind, PostMessagePayload, RegistrationPayload, UserData, writeMessagePage } from "./types.js";
+import type { MessageData, PageKind, PostMessagePayload, RegistrationPayload, UserData, writeMessagePage } from "./types.js";
 import { Valkeyrie } from "valkeyrie";
 const {
   SLACK_BOT_TOKEN,
@@ -29,7 +29,8 @@ const receiver = new ExpressReceiver({ signingSecret: SLACK_SIGNING_SECRET! });
 //const slugs = new Map<string, PageKind>() // slug to PageKind
 const db = await Valkeyrie.open("./e2ee.db");
 const SLUGS = "slugs",
-  USERS = "users";
+  USERS = "users",
+  MESSAGES = "messages";
 
 //DEBUG
 await db.set([SLUGS, "quecosa"], {
@@ -337,6 +338,9 @@ receiver.router.post("/message", express.json(), async (req, res) => {
   if (!guarded_message || guarded_message.length < 10 ) return res.status(422).send("unprocessable body");
 
 
+  //Messages are not saved in the slack block metadata because maybe they could get too long (?)
+  //I should look more into that. I want the server to hold as little data as possible
+
 
 
 })
@@ -401,6 +405,22 @@ async function getUserData(slack_id: string): Promise<UserData | null> {
   else return val as UserData;
 }
 
+
+async function saveMessage(data:MessageData): Promise<string | null> {
+  if (!data) return null;
+  const uuid = randomUUID();
+
+  try {
+    const r = await db.set([MESSAGES, uuid], data);
+    if (!r.ok) return null;
+  } catch (e) {
+    console.error("Error trying to save message")
+    return null;
+  }
+  return uuid
+}
+
+
 function videoEmbedBlock(page_title: string, slug: string) {
   console.log("generating video embed:", SELF_BASE_URL + "/slug/" + slug)
   return {
@@ -414,3 +434,6 @@ function videoEmbedBlock(page_title: string, slug: string) {
     video_url: SELF_BASE_URL + "/slug/" + slug,
   };
 }
+
+
+const getTimestamp = () => Math.floor((new Date()).getTime() / 1000)
