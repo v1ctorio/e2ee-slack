@@ -2,8 +2,10 @@
 //@ts-nocheck
 //NO, i will not use jsdoc
 
-const ENCRYPTED_PRIV_KEY = "<%= it.author_private_key %>"
-const recipient_keys = _recipient_keys
+
+// This is such an utter mess of templating shenanigans, shouldn't have used eta
+const ENCRYPTED_PRIV_KEY = `<%= it.author_private_key %>`
+const recipient_keys = JSON.parse(atob("<%= it.recipient_keys %>"));
 const submitButton = document.getElementById("submitbutton")
 const form = document.getElementById("formulary")
 const keyInput = document.getElementById("key-input")
@@ -13,7 +15,7 @@ const messageInput = document.getElementById("message-input")
 import * as openpgp from "/openpgp.min.mjs"
 
 // storing these in global variables just in case i want to refactor the layout
-var decryptedKey, encryptedMessage;
+var DecryptedKey, EncryptedMessage;
 
 `
 1. button first decrypts the key. error if wrong
@@ -27,17 +29,17 @@ let state = 0;
 renameSubmitButton("Decrypt key")
 
 
-
-submitButton.onclick = async (e)=>{
+form.onsubmit = (e) => e.preventDefault()
+submitButton.addEventListener("click", async (e)=>{
     e.preventDefault()
     switch (state) {
-        case 0: await first_step();
-        case 1: await second_step();
-        case 2: await third_step();
-        case 3: await fourth_step();
-        default: raiseMsg("what", true);
+        case 0: await first_step(); break
+        case 1: await second_step(); break
+        case 2: await third_step(); break
+        case 3: await fourth_step(); break
+        default: raiseMsg("what", true); break;
     }
-}
+})
 
 
 
@@ -47,8 +49,9 @@ async function first_step() {
     if (priv_key === null) {
         return raiseMsg("wrong passphrase (prlly)", true)
     }
-    decryptedKey = priv_key
+    DecryptedKey = priv_key
     raiseMsg("Successfully decrypted your priv key")
+    keyInput.value = "private key (decrypted): [REDACTED]"
     renameSubmitButton("Encrypt message")
     messageInput.disabled = false
     state++
@@ -57,17 +60,19 @@ async function second_step(params) {
     const message = messageInput.value.trim()
     if (message === "") return raiseMsg("You must write a message first!", true)
     const target_keys = []
-    for (pubk in recipient_keys) {
-        target_keys.push(await openpgp.readKey({ armoredKey: pubk }))
+    for (const pubk of recipient_keys) {
+        target_keys.push(await openpgp.readKey({ armoredKey: pubk}))
     }
     
-    const encrypted = await encryptMessage(message, decryptKey, target_keys)
+    const encrypted = await encryptMessage(message, DecryptedKey, target_keys)
     
     if (!encrypted) raiseMsg("Error encrypting the message",true);
 
     messageInput.value = encrypted
-    encryptedMessage = encrypted
+    EncryptedMessage = encrypted
+    messageInput.readonly = true
     raiseMsg("Successfully encrypted and signed the message.")
+    renameSubmitButton("Send the message")
     state++
 }
 
@@ -76,7 +81,7 @@ async function second_step(params) {
 
 
 function renameSubmitButton(name) {
-    submitButton.innerText = name
+    submitButton.value = name
 }
 
 //msg: string, signing_key: decrypted private key, target_keys: array<public keys of the target users>
@@ -97,7 +102,7 @@ async function decryptKey(ekey, passphrase) {
     let decrpyted 
     try {
         decrpyted = await openpgp.decryptKey({privateKey:parsed_ekey, passphrase})
-    } catch {
+    } catch (e) {
         console.error("error decrypting key. probably wrong passphrase",e)
         return null;
     }
@@ -107,7 +112,9 @@ async function decryptKey(ekey, passphrase) {
 }
 
 function raiseMsg(mesg, isError = false) {
-    let msg = isError ? "msg: " : "error: " + e
+    let msg = isError ? "msg: " : "error: " + mesg
     //TODO put msgs somewhere better
     passphraseHelper.innerText = mesg
+    if (isError) passphraseHelper.style.color = "red" 
+    else passphraseHelper.style.color = "green" 
 }

@@ -236,8 +236,8 @@ slack.view("encrypt_msg", async ({ ack, body, client }) => {
     return;
   }
 
-  const author_private_key = (await db.get([USERS, body.user.id]))
-    ?.value as UserData["private_key"];
+  const author_private_key = ((await db.get([USERS, body.user.id]))
+    ?.value as UserData)["private_key"];
   if (!author_private_key) {
     await respond("Missing private key! Register first using `/e2ee`.");
     return;
@@ -294,10 +294,12 @@ receiver.router.get("/slug/:slug", async (req, res) => {
     //const user_data = await getUserData(page.user);
     // if (!user_data)
       // return res.status(500).send("server error: user data not found");
-    const recipient_keys_const = `const _recipient_keys = ${JSON.stringify(page.recipients_keys)}`
+    //const recipient_keys_const = `const _recipient_keys = \`${JSON.stringify(page.recipients_keys)}\``
+    const base64Keys = Buffer.from(JSON.stringify(page.recipients_keys)).toString('base64');
+
     res
       .status(200)
-      .send(eta.render("./write_message", { name: page.user_name, author_private_key: page.author_private_key, recipient_keys_const}));
+      .send(eta.render("./write_message", { name: page.user_name, author_private_key: page.author_private_key, recipient_keys: base64Keys}));
   }
 });
 
