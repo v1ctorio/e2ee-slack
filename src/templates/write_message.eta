@@ -14,10 +14,9 @@
 
 <main class="container">
     <p>
-Hi <%= it.name %>! Your message will be encrypted for <%= it.recipient_names %>
+    Hi <%= it.name %>! You may write and encrypt you message here.
     </p>
-    <p>
-    </p>
+    
     <form id="formulary">
         <label>
             Passphrase
@@ -32,6 +31,8 @@ Hi <%= it.name %>! Your message will be encrypted for <%= it.recipient_names %>
     </small>
         </label>
     <fieldset role="group">
+        <label>
+            Signing key
     <input
       id="key-input"
       type="text"
@@ -41,7 +42,7 @@ Hi <%= it.name %>! Your message will be encrypted for <%= it.recipient_names %>
       readonly
     />
   </fieldset>
-
+        </label>
     <textarea
         id="message-input"
         placeholder="Dear Deer,"
