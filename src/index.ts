@@ -326,22 +326,35 @@ receiver.router.post("/postKey", express.json(), async (req, res) => {
 });
 
 receiver.router.post("/message", express.json(), async (req, res) => {
+  console.log(req.body)
   const {slug, guarded_message}: PostMessagePayload = req.body;
   console.log("Received an encrypted message")
   const data = (await db.get([SLUGS, slug])); 
   if (!data) return res.status(404).send("slug not found");
   
   const page = data.value as writeMessagePage;
-  const {recipients,user,user_name, kind } = page;
   
-  if (!kind || kind !== "write_message" ) return res.status(400).send("Invalid slug");
+  if (!page.kind || page.kind !== "write_message" ) return res.status(400).send("Invalid slug");
   if (!guarded_message || guarded_message.length < 10 ) return res.status(422).send("unprocessable body");
 
 
   //Messages are not saved in the slack block metadata because maybe they could get too long (?)
   //I should look more into that. I want the server to hold as little data as possible
 
+  const message_id = await saveMessage({
+    armored_message: guarded_message,
+    author: page.user,
+    creation_timestamp: getTimestamp(),
+    recipients: page.recipients
+  })
 
+  if(!message_id) return res.status(500).send("internal server error")
+
+  res.status(200).json({ok:true, message_id})
+
+  for (const recipient of page.recipients) {
+    await sendEnvelope({recipient, author: page.user, message_id})
+  }
 
 })
 await slack.start(PORT!);
@@ -418,6 +431,53 @@ async function saveMessage(data:MessageData): Promise<string | null> {
     return null;
   }
   return uuid
+}
+
+async function getMessage(message_id: string): Promise<MessageData | null > {
+  const data = await db.get([message_id,message_id])
+
+  if (!data.value) return null
+  else return data.value as MessageData
+}
+
+async function sendEnvelope({recipient, author, message_id, ts}:{recipient: string, author: string, message_id: string, ts?: number}) {
+
+  const timestamp = ts ?? getTimestamp()
+
+  const blocks = [
+		{
+			type: "section",
+			text: {
+			type: "mrkdwn",
+				text: "You have received a new encrypted message. \nClick on the button below to decrypt it." +
+        "\n" + `<!date^${timestamp}^{date_pretty} at {time}|send_time> by *<@${author}>*`
+			}
+		},
+		{
+			type: "actions",
+			elements: [
+				{
+					type: "button",
+					text: {
+						type: "plain_text",
+						text: "Open Envelope",
+						emoji: true
+					},
+					style: "primary",
+					value: message_id,
+					"action_id": "open-envelope"
+				}
+			]
+		}
+	]
+  slack.client.chat.postMessage({
+    icon_emoji: ":tw_envelope_with_arrow:",
+    text: "New End-to-end Encrypted Slack envelope message.",
+    channel: recipient,
+    blocks,
+    username: "Envelope - E2EE Slack"
+  })
+
 }
 
 

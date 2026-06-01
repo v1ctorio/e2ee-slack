@@ -69,6 +69,7 @@ async function second_step() {
     messageInput.value = encrypted
     EncryptedMessage = encrypted
     messageInput.readonly = true
+    messageInput.disabled = true;
     raiseMsg("Successfully encrypted and signed the message.")
     renameSubmitButton("Send the message")
     state++
@@ -82,13 +83,19 @@ async function third_step() {
     }
     const res = await fetch(`/message`, {
         method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
         body: JSON.stringify(payload)
     })
 
     if (!res.ok) return raiseMsg("Error sending the message, weird", true)
     else 
-        raiseMsg("Successfully sent the message!")
-        state++
+        //TODO better UX. maybe having another page for when it's done and redirect to that (?)
+        raiseMsg("Successfully sent the message!");
+        submitButton.disabled = true;    
+
+    state++
 }
 
 
