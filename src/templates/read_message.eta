@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E2EE Slack</title>
+    <link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.jade.min.css"
+>
+    <script src="https://cdn.jsdelivr.net/npm/jsencrypt@latest/bin/jsencrypt.min.js"></script>
+</head>
+<body>
+
+<main class="container">
+    <p>
+        Attempting to decrypt message with key <small><%= it.reader_id %></small>, fingerprint: <small style="font-family: monospace" id="fingerprinttext">...</small> 
+    </p>
+    
+    <form id="formulary">
+        <label>
+            Passphrase
+    <input
+      type="password"
+      name="passphrase"
+      placeholder=""
+      id="passphrase-input"
+    />
+    <small id="passphrase-helper">
+        The passphrase of your private key. It will be used to decrypt your message
+    </small>
+        </label>
+    
+    <textarea
+        id="message-output"
+        placeholder="..."
+        style="height: 80px;"
+        name="message"
+        readonly
+    ></textarea>
+
+    <input type="submit" id="submitbutton" value="Decrypt" />
+</form>
+
+</main>
+<style>
+    :root {
+          --pico-font-size: 1em !important !important;
+    }
+    <!--TODO make the height dynamic-->
+    textarea {
+        field-sizing: content;
+        resize: vertical;
+    }
+</style>
+
+<script type="module">
+    <%~ it.recipient_keys_const %>
+    <%~ include("./read_message.js.eta") %>
+</script>
+</body>
+</html>

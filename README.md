@@ -20,3 +20,4 @@ Messages can be delivered via *letter* or *channel* mode. In the first one, the 
 - [ ] Deliver messages and allow recipients to decrypt them
 - [ ] Add a feature to see your private key (encrypted)
 - [ ] Add a feature to provide your own key pair 
+- [ ] Verify message signature on read

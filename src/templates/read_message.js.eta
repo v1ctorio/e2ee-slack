@@ -1,0 +1,123 @@
+//@ts-ignore
+//@ts-nocheck
+//NO, i will not use jsdoc
+
+
+const ARMORED_MESSAGE = `<%= it.armored_message %>`
+const ENCRYPTED_PRIV_KEY = `<%= it.reader_private_key %>`
+const SLUG = "<%= it.slug %>"
+const submitButton = document.getElementById("submitbutton")
+const form = document.getElementById("formulary")
+const passphraseInput = document.getElementById("passphrase-input")
+const passphraseHelper = document.getElementById("passphrase-helper")
+const messageOutput = document.getElementById("message-output")
+const fingerprintSmall = document.getElementById("fingerprinttext")
+import * as openpgp from "/openpgp.min.mjs"
+
+let DecryptedKey
+`
+    0. Decrypt the private_key
+    1. Decrypt the message
+`
+let state = 0
+
+await on_load()
+
+form.onsubmit = (e) => e.preventDefault()
+submitButton.addEventListener("click", async (e)=>{
+    e.preventDefault()
+    switch (state){
+        case 0: await first_step(); break;
+        case 1: await second_step(); break;
+        default: raiseMsg("Invalid state. Weird",true); break;
+    }
+})
+
+
+async function on_load() {
+    messageOutput.value = ARMORED_MESSAGE
+    messageOutput.style.color = "gray"
+    renameSubmitButton("Decrypt key")
+}
+
+async function first_step() {
+    const passphrase = passphraseInput.value
+
+    if (!passphrase || passphrase === "") {
+        raiseMsg("You must input a passphrase!",true)
+        return;
+    }
+    const decrypted = await decryptKey(ENCRYPTED_PRIV_KEY,passphrase)
+
+    if (!decrypted) {
+        raiseMsg("Invalid passphrase provided. Couldn't decrypt the key", true)
+        return;
+    }
+    let fingerprint = decrypted.getFingerprint()
+    fingerprintSmall.innerText = fingerprint
+    DecryptedKey = decrypted
+
+    raiseMsg("Successfully decrypted private key")
+    renameSubmitButton("Decrypt message")
+    state++
+}
+
+async function second_step() {
+
+    const decryptedMessage = await decryptMessage(ARMORED_MESSAGE, DecryptedKey)
+
+    if (!decryptedMessage) {
+        raiseMsg("Unable to decrypt the message.", true)
+        return
+    }
+
+    raiseMsg("Successfully decrypted the message!")
+    messageOutput.value = decryptedMessage
+    messageOutput.style.color = "default"
+    messageOutput.style.height = "200px"
+    submitButton.disabled = true;
+    state++
+}
+
+function renameSubmitButton(name) {
+    submitButton.value = name
+}
+
+
+async function decryptMessage(msg, private_key) {
+    try {
+
+        const message = await openpgp.readMessage({armoredMessage:msg})
+        const {data, signatures} = await openpgp.decrypt({
+            message,
+            decryptionKeys: private_key,
+        })
+        return data
+    } catch (e) {
+        console.error(e)
+        return null
+    }
+}
+
+async function decryptKey(ekey, passphrase) {
+    if (!ekey | !passphrase) return null
+    const parsed_ekey = await openpgp.readPrivateKey({armoredKey:ekey})
+    let decrpyted 
+    try {
+        decrpyted = await openpgp.decryptKey({privateKey:parsed_ekey, passphrase})
+    } catch (e) {
+        console.error("error decrypting key. probably wrong passphrase",e)
+        return null;
+    }
+    if (!decrpyted) return null
+
+    return decrpyted
+}
+
+function raiseMsg(mesg, isError = false) {
+    let msg = isError ? "msg: " : "error: " + mesg
+    //TODO put msgs somewhere better
+    passphraseHelper.innerText = mesg
+    if (isError) passphraseHelper.style.color = "red" 
+    else passphraseHelper.style.color = "green" 
+}

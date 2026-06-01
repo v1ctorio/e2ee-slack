@@ -274,6 +274,42 @@ slack.view("encrypt_msg", async ({ ack, body, client }) => {
   });
 });
 
+
+slack.action("open-envelope", async({ack,action, body, payload,respond,client})=>{
+  if (payload.type !== "button" || body.type !== "block_actions" ) return console.error("invalid open-envelope action received");
+  const trigger_id = body.trigger_id
+  const message_id = payload.value
+  if (!message_id) return;
+  await ack()
+  const message_data = await getMessage(message_id)
+  
+  if (!message_data) 
+    return await respond({text:"Message not found.",replace_original: false, response_type: "ephemeral"})
+  if (!message_data.recipients.includes(body.user.id))
+     return await respond({text:"This message was not addressed to you.",replace_original: false, response_type: "ephemeral"})  
+
+  const user_data = await getUserData(body.user.id)
+  if (!user_data)
+     return await respond({text:"Your user's data couldn't be found.",replace_original: false, response_type: "ephemeral"})  
+  
+  const slug = await generateSlug({
+    kind: "read_message",
+    armored_message: message_data.armored_message,
+    reader: body.user.id,
+    reader_private_key:user_data.private_key
+  })
+
+  await client.views.open({
+    trigger_id: body.trigger_id,
+    view: {
+      type: "modal",
+      title: {text:"E2EE Slack - Letter", type: "plain_text"},
+      blocks: [videoEmbedBlock("Letter", slug)]
+    }
+    ,
+  })
+})
+
 receiver.router.get("/slug/:slug", async (req, res) => {
   const { slug } = req.params;
 
@@ -301,6 +337,16 @@ receiver.router.get("/slug/:slug", async (req, res) => {
     res
       .status(200)
       .send(eta.render("./write_message", { name: page.user_name, author_private_key: page.author_private_key, recipient_keys: base64Keys, slug}));
+  } else if (page.kind === "read_message") {
+
+
+    res
+    .status(200)
+    .send(eta.render("./read_message", {
+       reader_id: page.reader,
+       reader_private_key: page.reader_private_key,
+       armored_message: page.armored_message
+      }))
   }
 });
 
@@ -434,7 +480,7 @@ async function saveMessage(data:MessageData): Promise<string | null> {
 }
 
 async function getMessage(message_id: string): Promise<MessageData | null > {
-  const data = await db.get([message_id,message_id])
+  const data = await db.get([MESSAGES,message_id])
 
   if (!data.value) return null
   else return data.value as MessageData

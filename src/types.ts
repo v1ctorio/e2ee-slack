@@ -12,8 +12,13 @@ export interface writeMessagePage {
   recipients_keys: string[];
   author_private_key: string;
 }
-
-export type PageKind = registrationPage | writeMessagePage;
+export interface readMessagePage {
+  reader: string;
+  reader_private_key: string;
+  kind: "read_message";
+  armored_message: string;
+}
+export type PageKind = registrationPage | writeMessagePage | readMessagePage;
 
 export interface UserData {
   //  slack_id: string; the slack ID is they key
