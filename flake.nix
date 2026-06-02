@@ -1,5 +1,5 @@
 {
-  description = "A Nix-flake-based rust development environment for frederick";
+  description = "A Nix-flake-based nodejs environment";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
