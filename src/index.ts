@@ -1,8 +1,8 @@
-import Slack, {} from "@slack/bolt";
-const { App, subtype, ExpressReceiver } = Slack;
+import Slack from "@slack/bolt";
+const { App,ExpressReceiver } = Slack;
 import { Eta } from "eta";
 import { config } from "dotenv";
-import { randomUUID, UUID } from "crypto";
+import { randomUUID  } from "crypto";
 import path from "path";
 import * as express from "express";
 config();
@@ -19,8 +19,6 @@ import { Valkeyrie } from "valkeyrie";
 const {
   SLACK_BOT_TOKEN,
   SLACK_SIGNING_SECRET,
-  SLACK_APP_TOKEN,
-  SLACK_CLIENT_SECRET,
   SELF_BASE_URL,
   PORT,
 } = process.env;
@@ -53,7 +51,7 @@ const slack = new App({
 });
 
 const possible_commands = ["register", "send", "self", "delete_my_data"];
-slack.command("/e2ee", async ({ ack, body, client, respond, command }) => {
+slack.command("/e2ee", async ({ ack, body, client, respond, }) => {
   await ack();
   const args = body.text;
   let cmd = args.split(" ")[0];
@@ -267,7 +265,7 @@ slack.view("encrypt_msg", async ({ ack, body, client }) => {
 
   console.timeEnd("viewsubm");
   // Seems like slack is rejecting my video blocks when updating through ack(?)
-  const res = await respond("processing...");
+  await respond("processing...");
   await client.views.update({
     view_id: body.view.id,
     view: {
@@ -284,10 +282,9 @@ slack.view("encrypt_msg", async ({ ack, body, client }) => {
 
 slack.action(
   "open-envelope",
-  async ({ ack, action, body, payload, respond, client }) => {
+  async ({ ack, body, payload, respond, client }) => {
     if (payload.type !== "button" || body.type !== "block_actions")
       return console.error("invalid open-envelope action received");
-    const trigger_id = body.trigger_id;
     const message_id = payload.value;
     if (!message_id) return;
     await ack();
@@ -378,11 +375,11 @@ receiver.router.get("/slug/:slug", async (req, res) => {
   }
 });
 
-receiver.router.get("/openpgp.min.mjs", (req, res) => {
+receiver.router.get("/openpgp.min.mjs", (_req, res) => {
   res.status(200).sendFile(path.join(assetsPath, "openpgp.min.mjs"));
 });
 
-receiver.router.get("/que", (r, res) => {
+receiver.router.get("/que", (_, res) => {
   res.status(200).send("so");
 });
 
@@ -500,7 +497,7 @@ async function saveMessage(data: MessageData): Promise<string | null> {
     const r = await db.set([MESSAGES, uuid], data);
     if (!r.ok) return null;
   } catch (e) {
-    console.error("Error trying to save message");
+    console.error("Error trying to save message", e);
     return null;
   }
   return uuid;
@@ -577,4 +574,4 @@ function videoEmbedBlock(page_title: string, slug: string) {
   };
 }
 
-const getTimestamp = () => Math.floor(new Date().getTime() / 1000);
+const getTimestamp = () => Math.floor(Date.now() / 1000);
