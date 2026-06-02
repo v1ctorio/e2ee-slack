@@ -7,7 +7,14 @@ import path from "path";
 import * as express from "express";
 config();
 import * as pgp from "openpgp";
-import type { MessageData, PageKind, PostMessagePayload, RegistrationPayload, UserData, writeMessagePage } from "./types.js";
+import type {
+  MessageData,
+  PageKind,
+  PostMessagePayload,
+  RegistrationPayload,
+  UserData,
+  writeMessagePage,
+} from "./types.js";
 import { Valkeyrie } from "valkeyrie";
 const {
   SLACK_BOT_TOKEN,
@@ -237,8 +244,9 @@ slack.view("encrypt_msg", async ({ ack, body, client }) => {
     return;
   }
 
-  const author_private_key = ((await db.get([USERS, body.user.id]))
-    ?.value as UserData)["private_key"];
+  const author_private_key = (
+    (await db.get([USERS, body.user.id]))?.value as UserData
+  )["private_key"];
   if (!author_private_key) {
     await respond("Missing private key! Register first using `/e2ee`.");
     return;
@@ -274,41 +282,55 @@ slack.view("encrypt_msg", async ({ ack, body, client }) => {
   });
 });
 
+slack.action(
+  "open-envelope",
+  async ({ ack, action, body, payload, respond, client }) => {
+    if (payload.type !== "button" || body.type !== "block_actions")
+      return console.error("invalid open-envelope action received");
+    const trigger_id = body.trigger_id;
+    const message_id = payload.value;
+    if (!message_id) return;
+    await ack();
+    const message_data = await getMessage(message_id);
 
-slack.action("open-envelope", async({ack,action, body, payload,respond,client})=>{
-  if (payload.type !== "button" || body.type !== "block_actions" ) return console.error("invalid open-envelope action received");
-  const trigger_id = body.trigger_id
-  const message_id = payload.value
-  if (!message_id) return;
-  await ack()
-  const message_data = await getMessage(message_id)
-  
-  if (!message_data) 
-    return await respond({text:"Message not found.",replace_original: false, response_type: "ephemeral"})
-  if (!message_data.recipients.includes(body.user.id))
-     return await respond({text:"This message was not addressed to you.",replace_original: false, response_type: "ephemeral"})  
+    if (!message_data)
+      return await respond({
+        text: "Message not found.",
+        replace_original: false,
+        response_type: "ephemeral",
+      });
+    if (!message_data.recipients.includes(body.user.id))
+      return await respond({
+        text: "This message was not addressed to you.",
+        replace_original: false,
+        response_type: "ephemeral",
+      });
 
-  const user_data = await getUserData(body.user.id)
-  if (!user_data)
-     return await respond({text:"Your user's data couldn't be found.",replace_original: false, response_type: "ephemeral"})  
-  
-  const slug = await generateSlug({
-    kind: "read_message",
-    armored_message: message_data.armored_message,
-    reader: body.user.id,
-    reader_private_key:user_data.private_key
-  })
+    const user_data = await getUserData(body.user.id);
+    if (!user_data)
+      return await respond({
+        text: "Your user's data couldn't be found.",
+        replace_original: false,
+        response_type: "ephemeral",
+      });
 
-  await client.views.open({
-    trigger_id: body.trigger_id,
-    view: {
-      type: "modal",
-      title: {text:"E2EE Slack - Letter", type: "plain_text"},
-      blocks: [videoEmbedBlock("Letter", slug)]
-    }
-    ,
-  })
-})
+    const slug = await generateSlug({
+      kind: "read_message",
+      armored_message: message_data.armored_message,
+      reader: body.user.id,
+      reader_private_key: user_data.private_key,
+    });
+
+    await client.views.open({
+      trigger_id: body.trigger_id,
+      view: {
+        type: "modal",
+        title: { text: "E2EE Slack - Letter", type: "plain_text" },
+        blocks: [videoEmbedBlock("Letter", slug)],
+      },
+    });
+  },
+);
 
 receiver.router.get("/slug/:slug", async (req, res) => {
   const { slug } = req.params;
@@ -318,35 +340,41 @@ receiver.router.get("/slug/:slug", async (req, res) => {
   if (!page) return res.status(404).send("Slug not found, weird");
 
   if (page.kind === "registration") {
-    res
-      .status(200)
-      .send(
-        eta.render("./registration", {
-          name: page.user_name,
-          slug,
-          slack_user_id: page.user,
-        }),
-      );
+    res.status(200).send(
+      eta.render("./registration", {
+        name: page.user_name,
+        slug,
+        slack_user_id: page.user,
+      }),
+    );
   } else if (page.kind === "write_message") {
     //const user_data = await getUserData(page.user);
     // if (!user_data)
-      // return res.status(500).send("server error: user data not found");
+    // return res.status(500).send("server error: user data not found");
     //const recipient_keys_const = `const _recipient_keys = \`${JSON.stringify(page.recipients_keys)}\``
-    const base64Keys = Buffer.from(JSON.stringify(page.recipients_keys)).toString('base64');
+    const base64Keys = Buffer.from(
+      JSON.stringify(page.recipients_keys),
+    ).toString("base64");
 
     res
       .status(200)
-      .send(eta.render("./write_message", { name: page.user_name, author_private_key: page.author_private_key, recipient_keys: base64Keys, slug}));
+      .send(
+        eta.render("./write_message", {
+          name: page.user_name,
+          author_private_key: page.author_private_key,
+          recipient_keys: base64Keys,
+          slug,
+        }),
+      );
   } else if (page.kind === "read_message") {
-
-
-    res
-    .status(200)
-    .send(eta.render("./read_message", {
-       reader_id: page.reader,
-       reader_private_key: page.reader_private_key,
-       armored_message: page.armored_message
-      }))
+    res.status(200).send(
+      eta.render("./read_message", {
+        reader_id: page.reader,
+        reader_private_key: page.reader_private_key,
+        armored_message: page.armored_message,
+        slug,
+      }),
+    );
   }
 });
 
@@ -372,17 +400,18 @@ receiver.router.post("/postKey", express.json(), async (req, res) => {
 });
 
 receiver.router.post("/message", express.json(), async (req, res) => {
-  console.log(req.body)
-  const {slug, guarded_message}: PostMessagePayload = req.body;
-  console.log("Received an encrypted message")
-  const data = (await db.get([SLUGS, slug])); 
+  console.log(req.body);
+  const { slug, guarded_message }: PostMessagePayload = req.body;
+  console.log("Received an encrypted message");
+  const data = await db.get([SLUGS, slug]);
   if (!data) return res.status(404).send("slug not found");
-  
-  const page = data.value as writeMessagePage;
-  
-  if (!page.kind || page.kind !== "write_message" ) return res.status(400).send("Invalid slug");
-  if (!guarded_message || guarded_message.length < 10 ) return res.status(422).send("unprocessable body");
 
+  const page = data.value as writeMessagePage;
+
+  if (!page.kind || page.kind !== "write_message")
+    return res.status(400).send("Invalid slug");
+  if (!guarded_message || guarded_message.length < 10)
+    return res.status(422).send("unprocessable body");
 
   //Messages are not saved in the slack block metadata because maybe they could get too long (?)
   //I should look more into that. I want the server to hold as little data as possible
@@ -391,18 +420,17 @@ receiver.router.post("/message", express.json(), async (req, res) => {
     armored_message: guarded_message,
     author: page.user,
     creation_timestamp: getTimestamp(),
-    recipients: page.recipients
-  })
+    recipients: page.recipients,
+  });
 
-  if(!message_id) return res.status(500).send("internal server error")
+  if (!message_id) return res.status(500).send("internal server error");
 
-  res.status(200).json({ok:true, message_id})
+  res.status(200).json({ ok: true, message_id });
 
   for (const recipient of page.recipients) {
-    await sendEnvelope({recipient, author: page.user, message_id})
+    await sendEnvelope({ recipient, author: page.user, message_id });
   }
-
-})
+});
 await slack.start(PORT!);
 await slack.logger.info("Slack app started in", PORT!);
 
@@ -464,8 +492,7 @@ async function getUserData(slack_id: string): Promise<UserData | null> {
   else return val as UserData;
 }
 
-
-async function saveMessage(data:MessageData): Promise<string | null> {
+async function saveMessage(data: MessageData): Promise<string | null> {
   if (!data) return null;
   const uuid = randomUUID();
 
@@ -473,62 +500,71 @@ async function saveMessage(data:MessageData): Promise<string | null> {
     const r = await db.set([MESSAGES, uuid], data);
     if (!r.ok) return null;
   } catch (e) {
-    console.error("Error trying to save message")
+    console.error("Error trying to save message");
     return null;
   }
-  return uuid
+  return uuid;
 }
 
-async function getMessage(message_id: string): Promise<MessageData | null > {
-  const data = await db.get([MESSAGES,message_id])
+async function getMessage(message_id: string): Promise<MessageData | null> {
+  const data = await db.get([MESSAGES, message_id]);
 
-  if (!data.value) return null
-  else return data.value as MessageData
+  if (!data.value) return null;
+  else return data.value as MessageData;
 }
 
-async function sendEnvelope({recipient, author, message_id, ts}:{recipient: string, author: string, message_id: string, ts?: number}) {
-
-  const timestamp = ts ?? getTimestamp()
+async function sendEnvelope({
+  recipient,
+  author,
+  message_id,
+  ts,
+}: {
+  recipient: string;
+  author: string;
+  message_id: string;
+  ts?: number;
+}) {
+  const timestamp = ts ?? getTimestamp();
 
   const blocks = [
-		{
-			type: "section",
-			text: {
-			type: "mrkdwn",
-				text: "You have received a new encrypted message. \nClick on the button below to decrypt it." +
-        "\n" + `<!date^${timestamp}^{date_pretty} at {time}|send_time> by *<@${author}>*`
-			}
-		},
-		{
-			type: "actions",
-			elements: [
-				{
-					type: "button",
-					text: {
-						type: "plain_text",
-						text: "Open Envelope",
-						emoji: true
-					},
-					style: "primary",
-					value: message_id,
-					"action_id": "open-envelope"
-				}
-			]
-		}
-	]
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text:
+          "You have received a new encrypted message. \nClick on the button below to decrypt it." +
+          "\n" +
+          `<!date^${timestamp}^{date_pretty} at {time}|send_time> by *<@${author}>*`,
+      },
+    },
+    {
+      type: "actions",
+      elements: [
+        {
+          type: "button",
+          text: {
+            type: "plain_text",
+            text: "Open Envelope",
+            emoji: true,
+          },
+          style: "primary",
+          value: message_id,
+          action_id: "open-envelope",
+        },
+      ],
+    },
+  ];
   slack.client.chat.postMessage({
     icon_emoji: ":tw_envelope_with_arrow:",
     text: "New End-to-end Encrypted Slack envelope message.",
     channel: recipient,
     blocks,
-    username: "Envelope - E2EE Slack"
-  })
-
+    username: "Envelope - E2EE Slack",
+  });
 }
 
-
 function videoEmbedBlock(page_title: string, slug: string) {
-  console.log("generating video embed:", SELF_BASE_URL + "/slug/" + slug)
+  console.log("generating video embed:", SELF_BASE_URL + "/slug/" + slug);
   return {
     type: "video",
     alt_text: "embedded e2ee client",
@@ -541,5 +577,4 @@ function videoEmbedBlock(page_title: string, slug: string) {
   };
 }
 
-
-const getTimestamp = () => Math.floor((new Date()).getTime() / 1000)
+const getTimestamp = () => Math.floor(new Date().getTime() / 1000);
