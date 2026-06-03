@@ -1,8 +1,8 @@
 import Slack from "@slack/bolt";
-const { App,ExpressReceiver } = Slack;
+const { App, ExpressReceiver } = Slack;
 import { Eta } from "eta";
 import { config } from "dotenv";
-import { randomUUID  } from "crypto";
+import { randomUUID } from "crypto";
 import path from "path";
 import * as express from "express";
 config();
@@ -120,10 +120,55 @@ slack.command("/e2ee", async ({ ack, body, client, respond, }) => {
       break;
     case "self": {
       const user_data = await getUserData(body.user_id);
+      if (!user_data) return respond({response_type: "ephemeral", text: "Your user data couldn't be found"})
+
+      const blocks = [
+          {
+            "type": "carousel",
+            "elements": [
+              {
+                "type": "card",
+                "block_id": "private-key",
+                "title": {
+                  "type": "mrkdwn",
+                  "text": "Private key",
+                  "verbatim": false
+                },
+                "subtitle": {
+                  "type": "mrkdwn",
+                  "text": "(encrypted)",
+                  "verbatim": false
+                },
+                "body": {
+                  "type": "mrkdwn",
+                  "text": "```\n"+user_data.private_key+"\n```",
+                  "verbatim": false
+                }
+              },
+              {
+                "type": "card",
+                "block_id": "public-key",
+                "title": {
+                  "type": "mrkdwn",
+                  "text": "Public key",
+                  "verbatim": false
+                },
+
+                "body": {
+                  "type": "mrkdwn",
+                  "text": "```\n"+user_data.public_key+"\n```",
+                  "verbatim": false
+                }
+              }
+            ]
+          }
+        ];
+
       await respond({
         response_type: "ephemeral",
         text: "```\n" + JSON.stringify(user_data, null, 4) + "\n```",
-      }); //TODO prettify ts
+        blocks
+      }); 
 
       break;
     }
