@@ -123,52 +123,62 @@ slack.command("/e2ee", async ({ ack, body, client, respond, }) => {
       if (!user_data) return respond({response_type: "ephemeral", text: "Your user data couldn't be found"})
 
       const blocks = [
-          {
-            "type": "carousel",
-            "elements": [
-              {
-                "type": "card",
-                "block_id": "private-key",
-                "title": {
-                  "type": "mrkdwn",
-                  "text": "Private key",
-                  "verbatim": false
-                },
-                "subtitle": {
-                  "type": "mrkdwn",
-                  "text": "(encrypted)",
-                  "verbatim": false
-                },
-                "body": {
-                  "type": "mrkdwn",
-                  "text": "```\n"+user_data.private_key+"\n```",
-                  "verbatim": false
-                }
-              },
-              {
-                "type": "card",
-                "block_id": "public-key",
-                "title": {
-                  "type": "mrkdwn",
-                  "text": "Public key",
-                  "verbatim": false
-                },
-
-                "body": {
-                  "type": "mrkdwn",
-                  "text": "```\n"+user_data.public_key+"\n```",
-                  "verbatim": false
-                }
-              }
-            ]
-          }
-        ];
-
-      await respond({
-        response_type: "ephemeral",
-        text: "```\n" + JSON.stringify(user_data, null, 4) + "\n```",
-        blocks
-      }); 
+		{
+			"type": "alert",
+			"text": {
+				"type": "mrkdwn",
+				"text": "Successfully retrieved your user keys",
+				"verbatim": false
+			},
+			"level": "success"
+		},
+		{
+			"type": "header",
+			"text": {
+				"type": "plain_text",
+				"text": "Public key",
+				"emoji": true
+			},
+			"level": 2
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "```\n"+user_data.public_key+"\n```"
+			},
+			"expand": false
+		},
+		{
+			"type": "header",
+			"text": {
+				"type": "plain_text",
+				"text": "Private key",
+				"emoji": true
+			},
+			"level": 2
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "```\n"+user_data.private_key+"\n```"
+			},
+			"expand": false
+		}
+	];
+      
+      await client.views.open({
+        trigger_id: body.trigger_id,
+        view: {
+          type: "modal",
+          title: {
+            text: "Private data",
+            type: "plain_text"
+          },
+          blocks
+        }
+      })
 
       break;
     }
