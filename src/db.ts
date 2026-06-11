@@ -28,7 +28,7 @@ export async function generateSlug(k: PageKind) {
   return slug;
 }
 
-export async function save_user(payload: RegistrationPayload, client: webApi.WebClient|null): Promise<boolean> {
+export async function saveUser(payload: RegistrationPayload, client: webApi.WebClient|null): Promise<boolean> {
   const { public_key, private_key, slug } = payload;
   const slug_data = (await (await db.get([SLUGS, slug])).value) as PageKind;
   if (!slug_data) return false;
@@ -60,7 +60,7 @@ export async function save_user(payload: RegistrationPayload, client: webApi.Web
   return true;
 }
 
-export async function delete_user(slack_id: string, client: webApi.WebClient|null): Promise<boolean> {
+export async function deleteUserData(slack_id: string, client: webApi.WebClient|null): Promise<boolean> {
   try {
     await db.delete([USERS, slack_id]);
   } catch {
@@ -99,4 +99,13 @@ export async function getMessage(message_id: string): Promise<MessageData | null
 
   if (!data.value) return null;
   else return data.value as MessageData;
+}
+
+export async function getPage(slug:string): Promise<PageKind | null> {
+  const res = await db.get([SLUGS, slug]);
+
+  const page = res.value as PageKind;
+
+  if (!res || !page?.kind) return null;
+  return page
 }

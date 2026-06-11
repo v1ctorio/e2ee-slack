@@ -1,9 +1,11 @@
-import type { ExpressReceiver } from "@slack/bolt";
+import type { ExpressReceiver, webApi } from "@slack/bolt";
 import {Eta} from "eta";
 import path from "node:path";
-import { PostMessagePayload, RegistrationPayload } from "./types.js";
+import type { PostMessagePayload, RegistrationPayload } from "./types.js";
 import { getTimestamp } from "./util.js";
-
+import { getPage, saveMessage, saveUser } from "./db.js";
+import express from "express";
+import { sendEnvelope } from "./slack.js";
 //This is so silly but tscompiler is trash
 const eta = new Eta({
   views: path.join(import.meta.dirname, "../src", "templates"),
@@ -12,11 +14,11 @@ const eta = new Eta({
 const assetsPath = path.join(import.meta.dirname, "../src", "assets");
 
 
-export function populateReceiver(receiver: ExpressReceiver): ExpressReceiver {
+export function populateReceiver(receiver: ExpressReceiver, slack_client: webApi.WebClient): ExpressReceiver {
     receiver.router.get("/slug/:slug", async (req, res) => {
         const { slug } = req.params;
 
-        const page = (await (await db.get([SLUGS, slug])).value) as PageKind;
+        const page = await getPage(slug);
 
         if (!page) return res.status(404).send("Slug not found, weird");
 
@@ -73,8 +75,8 @@ export function populateReceiver(receiver: ExpressReceiver): ExpressReceiver {
         if (!body["slug"] || !body["public_key"] || !body["private_key"]) {
             res.status(422).send("unprocessable body");
         }
-
-        if (!(await save_user(body))) return res.status(500).send("server error");
+        //TODO pass the slack client
+        if (!(await saveUser(body, slack_client))) return res.status(500).send("server error");
 
         // TODO use views.update to change the view
         res.status(200).send("ok");
@@ -84,11 +86,10 @@ export function populateReceiver(receiver: ExpressReceiver): ExpressReceiver {
         console.log(req.body);
         const { slug, guarded_message }: PostMessagePayload = req.body;
         console.log("Received an encrypted message");
-        const data = await db.get([SLUGS, slug]);
-        if (!data) return res.status(404).send("slug not found");
 
-        const page = data.value as writeMessagePage;
+        const page = await getPage(slug);
 
+        if (!page) return res.status(404).send("slug not found");
         if (!page.kind || page.kind !== "write_message")
             return res.status(400).send("Invalid slug");
         if (!guarded_message || guarded_message.length < 10)
@@ -109,7 +110,7 @@ export function populateReceiver(receiver: ExpressReceiver): ExpressReceiver {
         res.status(200).json({ ok: true, message_id });
 
         for (const recipient of page.recipients) {
-            await sendEnvelope({ recipient, author: page.user, message_id });
+            await sendEnvelope(slack_client, { recipient, author: page.user, message_id });
         }
     });
 

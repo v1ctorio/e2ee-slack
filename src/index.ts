@@ -1,24 +1,21 @@
 import { config } from "dotenv";
 config();
 
-import { randomUUID } from "crypto";
 import Slack from "@slack/bolt";
 const { App, ExpressReceiver } = Slack;
 
-import { Valkeyrie } from "valkeyrie";
 const {
   SLACK_BOT_TOKEN,
   SLACK_SIGNING_SECRET,
   PORT,
 } = process.env;
-
-import { videoEmbedBlock, getTimestamp } from "./util.js";
 import { populateReceiver } from "./endpoints.js";
 import { populateSlackEvents } from "./slack.js";
+import assert from "node:assert";
 
 const receiver = new ExpressReceiver({ signingSecret: SLACK_SIGNING_SECRET! });
 
-//const slugs = new Map<string, PageKind>() // slug to PageKind
+assert(PORT && SLACK_BOT_TOKEN && SLACK_SIGNING_SECRET);
 
 const slack = new App({
   token: SLACK_BOT_TOKEN,
@@ -26,9 +23,10 @@ const slack = new App({
   receiver,
 });
 
-populateReceiver(receiver);
+populateReceiver(receiver, slack.client);
 populateSlackEvents(slack);
 
-await slack.start(PORT!);
-await slack.logger.info("Slack app started in", PORT!);
+
+await slack.start(PORT);
+await slack.logger.info("Slack app started in", PORT);
 

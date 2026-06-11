@@ -1,5 +1,6 @@
 import { App as SlackApp, webApi } from "@slack/bolt";
 import { getTimestamp, videoEmbedBlock } from "./util.js";
+import { deleteUserData, generateSlug, getMessage, getUserData, saveUser } from "./db.js";
 
 
 const possible_commands = ["register", "send", "self", "delete_my_data"];
@@ -11,7 +12,7 @@ export function populateSlackEvents(slack: SlackApp): SlackApp {
         let cmd = args.split(" ")[0];
         console.log(`Received from ${body.user_id} - /e2ee ${args}`);
 
-        const userData = await (await db.get([USERS, body.user_id])).value;
+        const userData = await getUserData(body.user_id);
         if (!userData) cmd = "register";
 
         console.log(`Parsed cmd =`, cmd);
@@ -35,13 +36,9 @@ export function populateSlackEvents(slack: SlackApp): SlackApp {
 
                 const responseBlocks = [videoEmbedBlock("Register", slug)];
 
-                //await respond({
-                //  response_type: "ephemeral",
-                //  text: "To use e2ee slack you must use a different client",
-                //  blocks: responseBlocks
-                //})
 
-                const res = await client.views.open({
+
+                const _res = await client.views.open({
                     trigger_id: body.trigger_id,
                     view: {
                         type: "modal",
@@ -57,11 +54,11 @@ export function populateSlackEvents(slack: SlackApp): SlackApp {
                         },
                     },
                 });
-
-                await db.set([USERS, body.user_id], {
-                    ...slugData,
-                    view_id: res.view?.id,
-                });
+                // TODO do this elegantly
+                //await db.set([USERS, body.user_id], {
+                //    ...slugData,
+                //    view_id: res.view?.id,
+                //});
 
                 break;
             }
@@ -70,7 +67,7 @@ export function populateSlackEvents(slack: SlackApp): SlackApp {
                     response_type: "ephemeral",
                     text: "Deleting your data...",
                 });
-                await delete_user(body.user_id);
+                await deleteUserData(body.user_id, slack.client);
                 break;
             case "self": {
                 const user_data = await getUserData(body.user_id);
@@ -252,8 +249,8 @@ export function populateSlackEvents(slack: SlackApp): SlackApp {
         }
 
         const author_private_key = (
-            (await db.get([USERS, body.user.id]))?.value as UserData
-        )["private_key"];
+            await getUserData(body.user.id)
+        )?.private_key;
         if (!author_private_key) {
             await respond("Missing private key! Register first using `/e2ee`.");
             return;
