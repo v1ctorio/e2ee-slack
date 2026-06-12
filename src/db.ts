@@ -9,7 +9,7 @@ import type {
   UserData,
   writeMessagePage,
 } from "./types.js";
-import { webApi } from "@slack/bolt";
+import type { webApi } from "@slack/bolt";
 const db = await Valkeyrie.open("./e2ee.db");
 const SLUGS = "slugs",
   USERS = "users",
@@ -28,7 +28,10 @@ export async function generateSlug(k: PageKind) {
   return slug;
 }
 
-export async function saveUser(payload: RegistrationPayload, client: webApi.WebClient|null): Promise<boolean> {
+export async function saveUser(
+  payload: RegistrationPayload,
+  client: webApi.WebClient | null,
+): Promise<boolean> {
   const { public_key, private_key, slug } = payload;
   const slug_data = (await (await db.get([SLUGS, slug])).value) as PageKind;
   if (!slug_data) return false;
@@ -47,29 +50,34 @@ export async function saveUser(payload: RegistrationPayload, client: webApi.WebC
     fingerprint,
   });
 
-  if (client) client.chat
-    .postMessage({
-      channel: slug_data.user,
-      text:
-        "Successfully registered to E2EE Slack with private key (encrypted, you must preserve your passphrase): `redacted`, public key fingerprint: `" +
-        fingerprint +
-        "`. \nTo see your full keys, use `/e2ee self`",
-    })
-    .catch((e) => console.error(e))
-    .then((m) => console.log(`sent registration message${m}`));
+  if (client)
+    client.chat
+      .postMessage({
+        channel: slug_data.user,
+        text:
+          "Successfully registered to E2EE Slack with private key (encrypted, you must preserve your passphrase): `redacted`, public key fingerprint: `" +
+          fingerprint +
+          "`. \nTo see your full keys, use `/e2ee self`",
+      })
+      .catch((e) => console.error(e))
+      .then((m) => console.log(`sent registration message${m}`));
   return true;
 }
 
-export async function deleteUserData(slack_id: string, client: webApi.WebClient|null): Promise<boolean> {
+export async function deleteUserData(
+  slack_id: string,
+  client: webApi.WebClient | null,
+): Promise<boolean> {
   try {
     await db.delete([USERS, slack_id]);
   } catch {
     return false;
   }
-  if(client) client.chat.postMessage({
-    channel: slack_id,
-    text: "Delete your key pair from my database. You may register again using `/e2ee register`.",
-  });
+  if (client)
+    client.chat.postMessage({
+      channel: slack_id,
+      text: "Delete your key pair from my database. You may register again using `/e2ee register`.",
+    });
   return true;
 }
 
@@ -94,18 +102,20 @@ export async function saveMessage(data: MessageData): Promise<string | null> {
   return uuid;
 }
 
-export async function getMessage(message_id: string): Promise<MessageData | null> {
+export async function getMessage(
+  message_id: string,
+): Promise<MessageData | null> {
   const data = await db.get([MESSAGES, message_id]);
 
   if (!data.value) return null;
   else return data.value as MessageData;
 }
 
-export async function getPage(slug:string): Promise<PageKind | null> {
+export async function getPage(slug: string): Promise<PageKind | null> {
   const res = await db.get([SLUGS, slug]);
 
   const page = res.value as PageKind;
 
   if (!res || !page?.kind) return null;
-  return page
+  return page;
 }

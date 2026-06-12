@@ -1,4 +1,4 @@
-const {SELF_BASE_URL} = process.env;
+const { SELF_BASE_URL } = process.env;
 
 export function videoEmbedBlock(page_title: string, slug: string) {
   console.log("generating video embed:", SELF_BASE_URL + "/slug/" + slug);

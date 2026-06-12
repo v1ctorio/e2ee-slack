@@ -1,11 +1,7 @@
 import Slack from "@slack/bolt";
 const { App, ExpressReceiver } = Slack;
 
-const {
-  SLACK_BOT_TOKEN,
-  SLACK_SIGNING_SECRET,
-  PORT,
-} = process.env;
+const { SLACK_BOT_TOKEN, SLACK_SIGNING_SECRET, PORT } = process.env;
 import { populateReceiver } from "./endpoints.js";
 import { populateSlackEvents } from "./slack.js";
 import assert from "node:assert";
@@ -23,7 +19,5 @@ const slack = new App({
 populateReceiver(receiver, slack.client);
 populateSlackEvents(slack);
 
-
 await slack.start(PORT);
 await slack.logger.info("Slack app started in", PORT);
-
