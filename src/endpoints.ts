@@ -67,6 +67,9 @@ export function populateReceiver(
   receiver.router.get("/banner.png", (_, res)=> {
     res.status(200).sendFile(path.join(assetsPath, "banner.png"))
   })
+  receiver.router.get("banner_s.png", (_req, res) => {
+    res.status(200).sendFile(path.join(assetsPath, "banner_s.png"));
+  })
 
   receiver.router.get("/que", (_, res) => {
     res.status(200).send("so");

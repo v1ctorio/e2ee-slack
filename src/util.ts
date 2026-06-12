@@ -9,7 +9,7 @@ export function videoEmbedBlock(page_title: string, slug: string) {
       type: "plain_text",
       text: "E2EE Slack - " + page_title,
     },
-    thumbnail_url: SELF_BASE_URL + "/banner.png", 
+    thumbnail_url: SELF_BASE_URL + "/banner_s.png", 
     video_url: SELF_BASE_URL + "/slug/" + slug,
   };
 }
