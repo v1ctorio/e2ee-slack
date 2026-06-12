@@ -6,9 +6,9 @@ import { populateReceiver } from "./endpoints.js";
 import { populateSlackEvents } from "./slack.js";
 import assert from "node:assert";
 
-const receiver = new ExpressReceiver({ signingSecret: SLACK_SIGNING_SECRET! });
-
 assert(PORT && SLACK_BOT_TOKEN && SLACK_SIGNING_SECRET);
+const receiver = new ExpressReceiver({ signingSecret: SLACK_SIGNING_SECRET });
+
 
 const slack = new App({
   token: SLACK_BOT_TOKEN,

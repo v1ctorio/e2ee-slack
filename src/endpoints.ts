@@ -64,6 +64,9 @@ export function populateReceiver(
   receiver.router.get("/openpgp.min.mjs", (_req, res) => {
     res.status(200).sendFile(path.join(assetsPath, "openpgp.min.mjs"));
   });
+  receiver.router.get("/banner.png", (_, res)=> {
+    res.status(200).sendFile(path.join(assetsPath, "banner.png"))
+  })
 
   receiver.router.get("/que", (_, res) => {
     res.status(200).send("so");
