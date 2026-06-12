@@ -73,7 +73,7 @@ export function populateReceiver(receiver: ExpressReceiver, slack_client: webApi
         const body: RegistrationPayload = req.body;
         console.log("received a post request", body);
         if (!body["slug"] || !body["public_key"] || !body["private_key"]) {
-            res.status(422).send("unprocessable body");
+            return res.status(422).send("unprocessable body");
         }
         //TODO pass the slack client
         if (!(await saveUser(body, slack_client))) return res.status(500).send("server error");

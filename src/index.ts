@@ -1,6 +1,3 @@
-import { config } from "dotenv";
-config();
-
 import Slack from "@slack/bolt";
 const { App, ExpressReceiver } = Slack;
 
