@@ -82,63 +82,44 @@ export function populateSlackEvents(slack: SlackApp): SlackApp {
 
         const blocks = [
           {
-            type: "alert",
-            text: {
-              type: "mrkdwn",
-              text: "Successfully retrieved your user keys",
-              verbatim: false,
-            },
-            level: "success",
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "Click on the buttons below to display your stored data."
+            }
           },
           {
-            type: "header",
-            text: {
-              type: "plain_text",
-              text: "Public key",
-              emoji: true,
-            },
-            level: 2,
-          },
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: "```\n" + user_data.public_key + "\n```",
-            },
-            expand: false,
-          },
-          {
-            type: "header",
-            text: {
-              type: "plain_text",
-              text: "Private key",
-              emoji: true,
-            },
-            level: 2,
-          },
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: "```\n" + user_data.private_key + "\n```",
-            },
-            expand: false,
-          },
+            "type": "actions",
+            "elements": [
+              {
+                "type": "button",
+                "text": {
+                  "type": "plain_text",
+                  "text": "Public Key",
+                  "emoji": true
+                },
+                "action_id": "show-pubkey"
+              },
+              {
+                "type": "button",
+                "text": {
+                  "type": "plain_text",
+                  "text": "Private Key"
+                },
+                "action_id": "show-privkey",
+                "style": "danger"
+              }
+            ]
+          }
         ];
 
-        await client.views.open({
-          trigger_id: body.trigger_id,
-          view: {
-            type: "modal",
-            title: {
-              text: "Private data",
-              type: "plain_text",
-            },
-            blocks,
-          },
-        });
-
-        break;
+        await respond({
+          text:"Successfully retrieved your data. Open the Slack app to see it.",
+          blocks,
+          response_type: "ephemeral"
+        })
+        return;
+        // break; the linter cries if i put this break /
       }
       case "send":
         await client.views.open({
@@ -341,6 +322,29 @@ export function populateSlackEvents(slack: SlackApp): SlackApp {
     },
   );
 
+  const r_default_opts = { ephemeral: true, replace_original: false };
+
+  slack.action("show-privkey", async ({ ack, body, respond }) => {
+    await ack();
+    const user = body.user.id;
+    const userData = await getUserData(user);
+    if (!userData) return respond({ text: "Couldn't find your user data", ...r_default_opts });
+    respond({
+      text: "```\n" + userData.private_key + "\n```",
+      ...r_default_opts
+    });
+  });
+
+  slack.action("show-pubkey", async ({ ack, body, respond }) => {
+    await ack();
+    const user = body.user.id;
+    const userData = await getUserData(user);
+    if (!userData) return respond({ text: "Couldn't find your used data", ...r_default_opts });
+    respond({
+      text: "```\n" + userData.public_key + "\n```",
+      ...r_default_opts
+    });
+  });
   return slack;
 }
 
