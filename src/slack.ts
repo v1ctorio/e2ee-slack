@@ -1,4 +1,5 @@
 import type { App as SlackApp, webApi } from "@slack/bolt";
+import type { KnownBlock } from "@slack/types/dist/block-kit/blocks.js"
 import { getTimestamp, videoEmbedBlock } from "./util.js";
 import {
   deleteUserData,
@@ -8,13 +9,13 @@ import {
   saveUser,
 } from "./db.js";
 
-const possible_commands = ["register", "send", "self", "delete_my_data"];
+const possible_commands = ["register", "send", "self", "self delete"];
 
 export function populateSlackEvents(slack: SlackApp): SlackApp {
   slack.command("/e2ee", async ({ ack, body, client, respond }) => {
     await ack();
-    const args = body.text;
-    let cmd = args.split(" ")[0];
+    const args = body.text.split(" ");
+    let cmd = args[0];
     console.log(`Received from ${body.user_id} - /e2ee ${args}`);
 
     const userData = await getUserData(body.user_id);
@@ -65,13 +66,6 @@ export function populateSlackEvents(slack: SlackApp): SlackApp {
 
         break;
       }
-      case "delete_my_data":
-        await respond({
-          response_type: "ephemeral",
-          text: "Deleting your data...",
-        });
-        await deleteUserData(body.user_id, slack.client);
-        break;
       case "self": {
         const user_data = await getUserData(body.user_id);
         if (!user_data)
@@ -79,8 +73,34 @@ export function populateSlackEvents(slack: SlackApp): SlackApp {
             response_type: "ephemeral",
             text: "Your user data couldn't be found",
           });
+        let blocks: KnownBlock[];
+        if(args[1]==="delete"){
+          blocks = [
+            {
+              "type":"section",
+              "text": {
+                "type": "mrkdwn",
+                "text": "Clicking the button below will delete your data permanently."
+              }
+            },
+            {
+              "type":"actions",
+              "elements":[
+                {
+                  "type":"button",
+                  "text": {
+                    "type":"plain_text",
+                    "text":"Confirm deletion"
+                  },
+                  "action_id": "delete-data",
+                  "style":"danger"
+                }
+              ]
+            }
+          ]
+        } else { 
 
-        const blocks = [
+        blocks = [
           {
             "type": "section",
             "text": {
@@ -113,13 +133,17 @@ export function populateSlackEvents(slack: SlackApp): SlackApp {
           }
         ];
 
+       return;
+                   
+
+        }
         await respond({
-          text:"Successfully retrieved your data. Open the Slack app to see it.",
-          blocks,
+          text:"Successfully retrieved your data. Open the Slack app to interact.",
+          blocks: blocks,
           response_type: "ephemeral"
         })
-        return;
-        // break; the linter cries if i put this break /
+ 
+        break;
       }
       case "send":
         await client.views.open({
@@ -345,6 +369,23 @@ export function populateSlackEvents(slack: SlackApp): SlackApp {
       ...r_default_opts
     });
   });
+
+  slack.action("delete-data", async ({ack, body, respond})=>{
+    await ack();
+    const user = body.user.id;
+    if (!await deleteUserData(user,slack.client)) {
+      await respond({
+        text: "For some reason, your stored data failed to be deleted",
+        ...r_default_opts
+      })
+      return;
+    }
+    await respond({
+      text:"Deleted! You may register again via `/e2ee register`"
+    })
+  })
+
+  //eo populateSlackEvents 
   return slack;
 }
 
