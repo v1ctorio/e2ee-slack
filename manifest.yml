@@ -1,0 +1,36 @@
+display_information:
+  name: E2EE Slack
+features:
+  bot_user:
+    display_name: E2EE Slack
+    always_online: true
+  slash_commands:
+    - command: /e2ee
+      url: <BASE_URL>/slack/events
+      description: Use e2ee slack
+      should_escape: false
+  unfurl_domains:
+    - <BASE_URL>
+oauth_config:
+  scopes:
+    bot:
+      - chat:write
+      - channels:read
+      - commands
+      - links.embed:write
+      - links:read
+      - links:write
+      - chat:write.customize
+  pkce_enabled: false
+settings:
+  event_subscriptions:
+    request_url: <BASE_URL>/slack/events
+    bot_events:
+      - link_shared
+  interactivity:
+    is_enabled: true
+    request_url: <BASE_URL>/slack/events
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false
+  is_mcp_enabled: false
