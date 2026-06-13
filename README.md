@@ -11,6 +11,14 @@ The idea is that the bot embeds a website that generates a simple webapp which, 
 
 **The decrypted message and private key never leaves the users client**. All the encryption is done locally.
 
+### Usage
+Available commands:
+- `/e2ee register` - Register a key pair into the app
+- `/e2ee send`     - Send a message through e2ee Slack
+- `/e2ee self`     - Display are your stored data
+- `/e2ee self delete` - Delete your data from the app 
+
+
 ### Features 
 
 Messages can be delivered via *letter* or *channel* mode. In the first one, the *envelope* (encrypted message inside Slack) is sent to each recipient via DM. In the latter, the *envelope* is sent to a certain Slack channel.  

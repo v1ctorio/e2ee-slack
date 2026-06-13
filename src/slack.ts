@@ -99,7 +99,6 @@ export function populateSlackEvents(slack: SlackApp): SlackApp {
             }
           ]
         } else { 
-
         blocks = [
           {
             "type": "section",
@@ -131,11 +130,7 @@ export function populateSlackEvents(slack: SlackApp): SlackApp {
               }
             ]
           }
-        ];
-
-       return;
-                   
-
+        ];``
         }
         await respond({
           text:"Successfully retrieved your data. Open the Slack app to interact.",
