@@ -12,13 +12,13 @@
 	"license": "MIT",
 	"description": "",
 	"dependencies": {
-		"@slack/bolt": "^4.7.2",
-		"dotenv": "^17.4.2",
-		"eta": "^4.6.0",
-		"express": "^5.2.1",
-		"openpgp": "^6.3.0",
-		"typescript": "^6.0.3",
-		"valkeyrie": "^0.8.3"
+		"@slack/bolt": "4.7.2",
+		"dotenv": "17.4.2",
+		"eta": "4.6.0",
+		"express": "5.2.1",
+		"openpgp": "6.3.0",
+		"typescript": "6.0.3",
+		"valkeyrie": "0.8.3"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.4.16",
