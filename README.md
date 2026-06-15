@@ -18,8 +18,7 @@ Available commands:
 - `/e2ee self`     - Display are your stored data
 - `/e2ee self delete` - Delete your data from the app 
 
-To self host the bot, read the [dev.md](dev.md).
-### Features 
+## Features 
 
 Messages can be delivered via *letter* or *channel* mode. In the first one, the *envelope* (encrypted message inside Slack) is sent to each recipient via DM. In the latter, the *envelope* is sent to a certain Slack channel.  
 - [x] Generate key pairs inside the slack client
@@ -28,3 +27,12 @@ Messages can be delivered via *letter* or *channel* mode. In the first one, the 
 - [x] Add a feature to see your private key (encrypted)
 - [ ] Add a feature to provide your own key pair 
 - [ ] Verify message signature on read
+
+
+|register|send|
+|:----|:---|
+|![./assets/register.avif](assets/register.avif)|![./assets/send.avif](assets/send.avif)|
+|**self**|**read**|
+|![./assets/self.avif](assets/self.avif)|![./assets/read.avif](assets/read.avif)|
+To self host the bot, read the [dev.md](dev.md).
+#
